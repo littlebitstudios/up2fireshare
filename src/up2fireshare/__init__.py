@@ -137,6 +137,8 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.name is not None and len(args.files) > 1:
+        parser.error("the title option (-n/--name) can only be used with a single file")
 
     try:
         config = load_config(args.config)
