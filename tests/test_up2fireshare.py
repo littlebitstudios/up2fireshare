@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import xxhash
 
-from up2fireshare import _media_id, load_config, upload_file
+from up2fireshare import _media_id, load_config, main, upload_file
 
 
 class Up2FireshareTest(unittest.TestCase):
