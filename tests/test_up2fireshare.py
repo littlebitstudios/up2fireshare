@@ -10,6 +10,23 @@ from up2fireshare import _media_id, load_config, upload_file
 
 
 class Up2FireshareTest(unittest.TestCase):
+    def test_main_rejects_title_option_with_multiple_files(self):
+        for title_option in ("-n", "--name"):
+            with self.subTest(title_option=title_option):
+                with (
+                    patch.object(
+                        sys,
+                        "argv",
+                        ["up2fireshare", "first.mp4", "second.mp4", title_option, "Title"],
+                    ),
+                    patch("up2fireshare.load_config") as load_config_mock,
+                ):
+                    with self.assertRaises(SystemExit) as exit_context:
+                        main()
+
+                self.assertEqual(exit_context.exception.code, 2)
+                load_config_mock.assert_not_called()
+
     def test_media_id_hashes_only_the_first_16_mib(self):
         prefix = b"a" * (16 * 1024 * 1024)
         with tempfile.NamedTemporaryFile("wb", suffix=".mp4") as tmp:
