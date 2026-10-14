@@ -85,7 +85,7 @@ class Up2FireshareTest(unittest.TestCase):
                 get.assert_called_once_with(
                     "https://fireshare.example.com/api/upload/token/exists",
                     params={"video_id": xxhash.xxh3_128(b"video").hexdigest()},
-                    headers={"X-Fireshare-Token": "fsk_secret"},
+                    headers={"Authorization": "Bearer fsk_secret"},
                     timeout=60,
                 )
                 post.assert_called_once()
@@ -131,7 +131,7 @@ class Up2FireshareTest(unittest.TestCase):
                 get.assert_called_once_with(
                     "https://fireshare.example.com/api/upload/token/exists",
                     params={"image_id": exists_result["image_id"]},
-                    headers={"X-Fireshare-Token": "fsk_secret"},
+                    headers={"Authorization": "Bearer fsk_secret"},
                     timeout=60,
                 )
                 post.assert_not_called()
