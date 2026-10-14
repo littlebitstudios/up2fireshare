@@ -1,0 +1,2 @@
+server: https://fireshare.example.com # the URL of your Fireshare server
+token: fsk_REPLACE-THIS # go to Settings -> Security in Fireshare to get an upload token

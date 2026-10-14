@@ -1,0 +1,125 @@
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import xxhash
+
+from up2fireshare import _media_id, load_config, upload_file
+
+
+class Up2FireshareTest(unittest.TestCase):
+    def test_media_id_hashes_only_the_first_16_mib(self):
+        prefix = b"a" * (16 * 1024 * 1024)
+        with tempfile.NamedTemporaryFile("wb", suffix=".mp4") as tmp:
+            tmp.write(prefix + b"not part of the id")
+            tmp.flush()
+
+            self.assertEqual(
+                _media_id(tmp.name),
+                ("video_id", xxhash.xxh3_128(prefix).hexdigest()),
+            )
+
+    def test_load_config_reads_server_and_token(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            config_dir = home / ".littlebitstudios" / "up2fireshare"
+            config_dir.mkdir(parents=True)
+            (config_dir / "config.yaml").write_text(
+                "server: https://fireshare.example.com\n"
+                "token: fsk_secret\n",
+                encoding="utf-8",
+            )
+
+            with patch.dict(os.environ, {"HOME": str(home)}, clear=False):
+                self.assertEqual(
+                    load_config(),
+                    {"server": "https://fireshare.example.com", "token": "fsk_secret"},
+                )
+
+    def test_upload_file_uses_bearer_token_and_upload_endpoint(self):
+        with tempfile.NamedTemporaryFile("wb", suffix=".mp4", delete=False) as tmp:
+            tmp.write(b"video")
+            tmp_path = tmp.name
+
+        response = MagicMock(status_code=201)
+        response.json.return_value = {"status": "accepted"}
+        exists_response = MagicMock()
+        exists_response.json.return_value = {"exists": False}
+
+        try:
+            with (
+                patch("up2fireshare.requests.get", return_value=exists_response) as get,
+                patch("up2fireshare.requests.post", return_value=response) as post,
+            ):
+                result = upload_file(
+                    tmp_path,
+                    "https://fireshare.example.com",
+                    "fsk_secret",
+                    title="Title",
+                    folder="uploads",
+                    game="VALORANT",
+                    tags="1,2",
+                )
+
+                self.assertEqual(result["status"], "accepted")
+                get.assert_called_once_with(
+                    "https://fireshare.example.com/api/upload/token/exists",
+                    params={"video_id": xxhash.xxh3_128(b"video").hexdigest()},
+                    headers={"X-Fireshare-Token": "fsk_secret"},
+                    timeout=60,
+                )
+                post.assert_called_once()
+                self.assertEqual(
+                    post.call_args.args[0],
+                    "https://fireshare.example.com/api/upload/token",
+                )
+                self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "Bearer fsk_secret")
+                self.assertEqual(post.call_args.kwargs["data"]["title"], "Title")
+                self.assertEqual(post.call_args.kwargs["data"]["folder"], "uploads")
+                self.assertEqual(post.call_args.kwargs["data"]["game"], "VALORANT")
+                self.assertEqual(post.call_args.kwargs["data"]["tag_ids"], "1,2")
+                self.assertIn("file", post.call_args.kwargs["files"])
+        finally:
+            os.unlink(tmp_path)
+
+    def test_upload_file_skips_upload_when_image_already_exists(self):
+        with tempfile.NamedTemporaryFile("wb", suffix=".png", delete=False) as tmp:
+            tmp.write(b"image")
+            tmp_path = tmp.name
+
+        exists_result = {
+            "exists": True,
+            "image_id": xxhash.xxh3_128(b"image").hexdigest(),
+            "title": "Existing image",
+            "url": "/i/existing",
+        }
+        exists_response = MagicMock()
+        exists_response.json.return_value = exists_result
+
+        try:
+            with (
+                patch("up2fireshare.requests.get", return_value=exists_response) as get,
+                patch("up2fireshare.requests.post") as post,
+            ):
+                result = upload_file(
+                    tmp_path,
+                    "https://fireshare.example.com",
+                    "fsk_secret",
+                )
+
+                self.assertEqual(result, exists_result)
+                get.assert_called_once_with(
+                    "https://fireshare.example.com/api/upload/token/exists",
+                    params={"image_id": exists_result["image_id"]},
+                    headers={"X-Fireshare-Token": "fsk_secret"},
+                    timeout=60,
+                )
+                post.assert_not_called()
+        finally:
+            os.unlink(tmp_path)
+
+
+if __name__ == "__main__":
+    unittest.main()
