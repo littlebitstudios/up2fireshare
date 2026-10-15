@@ -102,14 +102,36 @@ def get_user_data(server, token):
         return {"status_code": response.status_code, "text": response.text}
 
 
+def _expand_input_files(paths, recursive=False):
+    uploads = []
+
+    for input_path in paths:
+        path = Path(input_path).expanduser()
+        if path.is_dir():
+            candidates = path.rglob("*") if recursive else path.iterdir()
+            for file_path in sorted(candidate for candidate in candidates if candidate.is_file()):
+                default_folder = file_path.parent.name if recursive else path.name
+                uploads.append((str(file_path), default_folder))
+        else:
+            uploads.append((str(path), None))
+
+    return uploads
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Upload one or more files to a Fireshare instance."
+        description="Upload one or more files or folders to a Fireshare instance."
     )
     parser.add_argument(
         "files",
         nargs="+",
-        help="File(s) to upload. Whether Fireshare treats them as video or photo depends on extension.",
+        help="File(s) or folder(s) to upload. Whether Fireshare treats each file as video or photo depends on extension.",
+    )
+    parser.add_argument(
+        "--recursive",
+        "-r",
+        action="store_true",
+        help="When given a folder, also upload files in its subfolders.",
     )
     parser.add_argument(
         "--name",
@@ -124,7 +146,7 @@ def main():
     parser.add_argument(
         "--folder",
         "-f",
-        help="Folder on your Fireshare server to assign the clip to. Default: your server's upload folder.",
+        help="Folder on your Fireshare server. Defaults to the provided folder's name, or the server's upload folder for files.",
     )
     parser.add_argument(
         "--game",
@@ -137,8 +159,12 @@ def main():
     )
 
     args = parser.parse_args()
-    if args.name is not None and len(args.files) > 1:
+    uploads = _expand_input_files(args.files, recursive=args.recursive)
+    if args.name is not None and len(uploads) > 1:
         parser.error("the title option (-n/--name) can only be used with a single file")
+    if not uploads:
+        print("No files found to upload.")
+        return 1
 
     try:
         config = load_config(args.config)
@@ -157,7 +183,7 @@ def main():
     if args.tags:
         normalized_tags = ",".join(part.strip() for part in args.tags.split(",") if part.strip())
 
-    for file_path in args.files:
+    for file_path, default_folder in uploads:
         file_path = os.path.expanduser(file_path)
         if not os.path.exists(file_path):
             print(f"File not found: {file_path}")
@@ -168,7 +194,7 @@ def main():
             config["server"],
             config["token"],
             title=args.name,
-            folder=args.folder,
+            folder=args.folder if args.folder is not None else default_folder,
             game=args.game,
             tags=normalized_tags,
         )
