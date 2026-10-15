@@ -2,6 +2,8 @@
 
 A CLI for uploading game clips to the Fireshare self-hosted gaming media collection system.
 
+This project's code is replicated on [GitWorkshop](https://gitworkshop.dev/npub1pra8zgw2hrckthu0xexs5k7xvz5mt6rsfk09e9egehnj7q8mpp9s8vr6v5/up2fireshare), [GitHub](https://github.com/littlebitstudios/up2fireshare) (GitHub Actions publishes PyPI release), [Tangled](https://tangled.org/littlebitstudios.com/up2fireshare), and [Radicle](https://radicle.network/nodes/rad.littlebitstudios.com/rad:z3t7dKZxEKKAGjbZWEGzEh2Po1DB9).
+
 ## Installation
 
 up2fireshare is a Python package uploaded to PyPI so it can be installed with pip or pipx (preferably pipx).
