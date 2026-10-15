@@ -22,11 +22,11 @@ The most basic way to run the program is
 ```sh
 up2fireshare /path/to/media/file
 ```
-You can also use `-g` to specify a game name (this game must be one you've added already from Fireshare's interface), the name is case-insensitive. You can also use `-f` to specify the folder name within Fireshare to upload to.
+You can also use `-g` to specify a game name (this game must be one you've added already from Fireshare's interface), the name is case-insensitive. You can also use `-f` to specify the folder name within Fireshare to upload to. When a local folder is provided, its name is used for `-f` by default.
 
 If you want to use Fireshare's tags, you can use `-t "tag1, tag2, ..."` to upload with tags.
 
-To upload multiple files at once, just add more than one file. For an entire folder, use `/path/to/media/folder/*`. Do note that when uploading multiple files, you can't use a title (`-n`) and all other options are copied across the files. Useful if you're uploading an entire folder that's categorized by game.
+To upload multiple files at once, add more than one file or provide a folder. By default, only files directly in a folder are uploaded. Use `-r` to include files in all its subfolders; with `-r`, each file is assigned to a Fireshare folder named after its local parent folder. An explicit `-f` overrides these defaults. When the upload contains multiple files, you can't use a title (`-n`); all other options are copied across the files.
 
 The program's full helptext can be seen with `up2fireshare -h`.
 
